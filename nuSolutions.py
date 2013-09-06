@@ -54,12 +54,15 @@ def factor_degenerate(G, zero=0):
     return [[L[swapXY],L[not swapXY],L[2]] for L in lines]
 
 
-def intersections_ellipse_line(ellipse=None, line=None, zero=1e-6):
+def intersections_ellipse_line(ellipse=None, line=None, zero=1e-12):
     '''Points of intersection between ellipse and line.'''
     _,V = np.linalg.eig(np.cross(line,ellipse).T)
-    return [ v.real / v[2].real for v in V.T if
-             abs(np.dot(line,v.real)) < zero and
-             abs(np.dot(v.real,ellipse).dot(v.real)) < zero]
+    sols =  sorted([(v.real / v[2].real,
+                     np.dot(line,v.real)**2 +
+                     np.dot(v.real,ellipse).dot(v.real)**2)
+                    for v in V.T ],
+                   key=lambda (s,k): k)[:2]
+    return [s for s,k in sols if k<zero]
 
 
 def intersections_ellipses(A, B, returnLines=False):
