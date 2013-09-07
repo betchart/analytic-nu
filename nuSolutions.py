@@ -134,26 +134,26 @@ class nuSolutionSet(object):
         return R_z.T.dot(R_y.T.dot(R_x.T))
 
     @property
-    def E_tilde(self):
+    def H_tilde(self):
         '''Transformation of t=[c,s,1] to nu momentum: F coordinates.'''
         Z, m, x1, y1, p = self.Z, self.m, self.x1, self.y1, self.mu.P()
         return np.array([[ Z/m,  0,  x1 - p ],
                          [ Z,    0,      y1 ],
                          [ 0,    Z,       0 ]])
     @property
-    def E(self):
+    def H(self):
         '''Transformation of t=[c,s,1] to nu momentum: lab coordinates.'''
-        return self.R_T.dot(self.E_tilde)
+        return self.R_T.dot(self.H_tilde)
 
     @property
-    def E_perp(self):
+    def H_perp(self):
         '''Transformation of t=[c,s,1] to nu transverse momentum: lab coordinates.'''
-        return np.vstack([self.E[:2],[0,0,1]])
+        return np.vstack([self.H[:2],[0,0,1]])
     
     @property
     def N(self):
         '''Solution ellipse of nu transverse momentum: lab coordinates.'''
-        E = self.E_perp
+        E = self.H_perp
         return np.linalg.inv(E.T).dot(UnitCircle()).dot(np.linalg.inv(E))
 
 
@@ -167,7 +167,7 @@ class singleNeutrinoSolution(object):
         self.solutionSet = nuSolutionSet(b, mu, Wm2, Tm2)
         S2 = np.vstack( [np.vstack( [ np.linalg.inv(sigma2), [0,0]] ).T, [0,0,0]] )
         V0 = np.outer( [metX, metY, 0 ], [0,0,1])
-        deltaNu = V0 - self.solutionSet.E
+        deltaNu = V0 - self.solutionSet.H
         
         self.X = np.dot(deltaNu.T, S2).dot(deltaNu)
         M = next( XD + XD.T for XD in (self.X.dot(Derivative()),))
@@ -184,7 +184,7 @@ class singleNeutrinoSolution(object):
     @property
     def nu(self):
         '''Solution for neutrino momentum.'''
-        return self.solutionSet.E.dot(self.solutions[0])
+        return self.solutionSet.H.dot(self.solutions[0])
 
 
 class doubleNeutrinoSolutions(object):
@@ -205,7 +205,7 @@ class doubleNeutrinoSolutions(object):
         v_ = [self.S.dot(sol) for sol in v]
 
         if not v and leastsq:
-            es = [ss.E_perp for ss in self.solutionSets]
+            es = [ss.H_perp for ss in self.solutionSets]
             met = np.array([metX,metY,1])
             def nus(ts) : return tuple(e.dot([math.cos(t),math.sin(t),1]) for e,t in zip(es,ts))
             ts,_ = leastsq( lambda params : sum( nus(params), -met)[:2], [0,0], ftol=5e-5, epsfcn=0.01 )
@@ -218,5 +218,5 @@ class doubleNeutrinoSolutions(object):
     @property
     def nunu_s(self):
         '''Solution pairs for neutrino momenta.'''
-        K,K_ = [ss.E.dot(np.linalg.inv(ss.E_perp)) for ss in self.solutionSets]
+        K,K_ = [ss.H.dot(np.linalg.inv(ss.H_perp)) for ss in self.solutionSets]
         return [(K.dot(s), K_.dot(s_)) for s,s_ in zip(self.perp,self.perp_)]
